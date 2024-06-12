@@ -1,45 +1,41 @@
-_base_ = [
-    'mmpretrain::convnext_v2/convnext-v2-base_32xb32_in1k.py',
-] 
+_base_ = ['mmpretrain::tinyvit/tinyvit-5m_8xb256_in1k.py']
+
+data_preprocessor = dict(
+    num_classes=100,
+    # RGB format normalization parameters
+    mean=[123.675, 116.28, 103.53],
+    std=[58.395, 57.12, 57.375],
+    # convert image from BGR to RGB
+    to_rgb=True,
+)
 
 model = dict(
-    _delete_ = True,
-    type = 'TimmClassifier',
-    init_cfg=dict(
-        bias=0.0, layer=[
-            'Conv2d',
-            'Linear',
-        ], std=0.02, type='TruncNormal'),
+    backbone=dict(
+        img_size=(64, 64),
+        window_size=[3, 3, 6, 3],
+    ),
+    head=dict(
+        num_classes=100,
+        loss=dict(
+            _delete_=True,
+            type='TIMM_LabelSmoothingCrossEntropy', 
+            label_smooth=0.1,
+            num_classes=100)
+    ),
+    data_preprocessor=data_preprocessor,
     train_cfg=dict(augments=[
         dict(alpha=0.8, type='Mixup'),
         dict(alpha=1.0, type='CutMix'),
     ]),
-    loss=dict(type='TIMM_LabelSmoothingCrossEntropy', 
-              label_smooth=0.1,
-              num_classes=100),
-    data_preprocessor = dict(
-        num_classes=100,
-        # RGB format normalization parameters
-        mean=[129.304, 124.070, 112.434],
-        std=[68.170, 65.392, 70.418],
-        # loaded images are already RGB format
-        to_rgb=False),
-    model_name='convnext_base',
-    pretrained=False,
-    num_classes = 100,
-    use_grn=True,
-    drop_path_rate=0.1,
-    ls_init_value=0.,
-    kernel_sizes=3,
 )
 
 train_pipeline = [
     dict(
-        backend='pillow',
-        interpolation='bicubic',
+        type='RandomResizedCrop',
         scale=64,
-        type='RandomResizedCrop'),
-    dict(direction='horizontal', prob=0.5, type='RandomFlip'),
+        backend='pillow',
+        interpolation='bicubic'),
+    dict(type='RandomFlip', prob=0.5, direction='horizontal'),
     dict(type='TIMM_AutoAugment'),
     dict(
         erase_prob=0.25,
@@ -71,20 +67,21 @@ test_pipeline = [
     dict(type='PackInputs'),
 ]
 
+
 train_dataloader = dict(
-    batch_size=128,
+    batch_size=64,
     num_workers=8,
     persistent_workers=True,
     dataset=dict(
         type='CIFAR100',
         data_root='data/',
         download=True,
-        pipeline=train_pipeline
+        pipeline=train_pipeline,
     )
 )
 
 val_dataloader = dict(
-    batch_size=128,
+    batch_size=64,
     num_workers=8,
     persistent_workers=True,
     dataset=dict(
@@ -101,16 +98,6 @@ test_evaluator = val_evaluator
 
 visualizer = dict(vis_backends=[dict(type='LocalVisBackend'), dict(type='TensorboardVisBackend')])
 
-optim_wrapper = dict(
-    type='TIMM_AmpOptimWrapper',
-    optimizer=dict(
-        _delete_=True,
-        type='AdamW', 
-        lr=1e-3, 
-        weight_decay=0.05,
-        eps=1e-8,
-        betas=(0.9, 0.999))
-)
 
 default_hooks = dict(
     checkpoint=dict(interval=5, type='CheckpointHook')
@@ -121,15 +108,6 @@ auto_scale_lr = dict(base_batch_size=128)
 
 logger=dict(interval=10, type='LoggerHook')
 
-param_scheduler = [dict(type='ReduceOnPlateauLR', 
-                         rule='greater',
-                         monitor='accuracy/top1',
-                         factor=0.1, 
-                         patience=1,
-                         threshold=1e-4)]
-
 custom_imports = dict(
     imports=['modules'], 
     allow_failed_imports=False)
-
-del _base_.custom_hooks

@@ -10,10 +10,6 @@ model = dict(
             'Conv2d',
             'Linear',
         ], std=0.02, type='TruncNormal'),
-    train_cfg=dict(augments=[
-        dict(alpha=0.8, type='Mixup'),
-        dict(alpha=1.0, type='CutMix'),
-    ]),
     loss=dict(type='TIMM_LabelSmoothingCrossEntropy', 
               label_smooth=0.1,
               num_classes=100),
@@ -24,7 +20,7 @@ model = dict(
         std=[68.170, 65.392, 70.418],
         # loaded images are already RGB format
         to_rgb=False),
-    model_name='convnext_base',
+    model_name='convnext_atto',
     pretrained=False,
     num_classes = 100,
     use_grn=True,
@@ -41,22 +37,6 @@ train_pipeline = [
         type='RandomResizedCrop'),
     dict(direction='horizontal', prob=0.5, type='RandomFlip'),
     dict(type='TIMM_AutoAugment'),
-    dict(
-        erase_prob=0.25,
-        fill_color=[
-            103.53,
-            116.28,
-            123.675,
-        ],
-        fill_std=[
-            57.375,
-            57.12,
-            58.395,
-        ],
-        max_area_ratio=0.3333333333333333,
-        min_area_ratio=0.02,
-        mode='rand',
-        type='RandomErasing'),
     dict(type='PackInputs'),
 ]
 
@@ -72,7 +52,7 @@ test_pipeline = [
 ]
 
 train_dataloader = dict(
-    batch_size=128,
+    batch_size=64,
     num_workers=8,
     persistent_workers=True,
     dataset=dict(
@@ -84,7 +64,7 @@ train_dataloader = dict(
 )
 
 val_dataloader = dict(
-    batch_size=128,
+    batch_size=64,
     num_workers=8,
     persistent_workers=True,
     dataset=dict(

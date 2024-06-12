@@ -30,7 +30,8 @@ class TIMM_LabelSmoothingCrossEntropy(nn.Module):
     
     def forward(self,
                 cls_score: torch.Tensor,
-                label: torch.Tensor):
+                label: torch.Tensor,
+                *args, **kwargs):
         label = self.generate_one_hot_like_label(label)
         smooth_label = self.original_smooth_label(label)
         return self.ce(cls_score, smooth_label)

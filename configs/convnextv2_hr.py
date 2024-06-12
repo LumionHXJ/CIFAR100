@@ -14,9 +14,10 @@ model = dict(
         dict(alpha=0.8, type='Mixup'),
         dict(alpha=1.0, type='CutMix'),
     ]),
-    loss=dict(type='TIMM_LabelSmoothingCrossEntropy', 
-              label_smooth=0.1,
-              num_classes=100),
+    loss=dict(
+        type='TIMM_LabelSmoothingCrossEntropy', 
+        label_smooth=0.1,
+        num_classes=100),
     data_preprocessor = dict(
         num_classes=100,
         # RGB format normalization parameters
@@ -26,7 +27,7 @@ model = dict(
         to_rgb=False),
     model_name='convnext_base',
     pretrained=False,
-    num_classes = 100,
+    num_classes=100,
     use_grn=True,
     drop_path_rate=0.1,
     ls_init_value=0.,
@@ -37,7 +38,7 @@ train_pipeline = [
     dict(
         backend='pillow',
         interpolation='bicubic',
-        scale=64,
+        scale=256,
         type='RandomResizedCrop'),
     dict(direction='horizontal', prob=0.5, type='RandomFlip'),
     dict(type='TIMM_AutoAugment'),
@@ -62,29 +63,27 @@ train_pipeline = [
 
 test_pipeline = [
     dict(
-        type='ResizeEdge',
-        scale=64,
-        edge='short',
+        type='Resize',
+        scale=256,
         backend='pillow',
         interpolation='bicubic'),
-    dict(type='CenterCrop', crop_size=64),
     dict(type='PackInputs'),
 ]
 
 train_dataloader = dict(
-    batch_size=128,
+    batch_size=32,
     num_workers=8,
     persistent_workers=True,
     dataset=dict(
         type='CIFAR100',
         data_root='data/',
         download=True,
-        pipeline=train_pipeline
+        pipeline=train_pipeline,
     )
 )
 
 val_dataloader = dict(
-    batch_size=128,
+    batch_size=32,
     num_workers=8,
     persistent_workers=True,
     dataset=dict(
@@ -106,17 +105,17 @@ optim_wrapper = dict(
     optimizer=dict(
         _delete_=True,
         type='AdamW', 
-        lr=1e-3, 
+        lr=1e-4, 
         weight_decay=0.05,
         eps=1e-8,
         betas=(0.9, 0.999))
 )
 
 default_hooks = dict(
-    checkpoint=dict(interval=5, type='CheckpointHook')
+    checkpoint=dict(interval=2, type='CheckpointHook')
 )
 
-train_cfg = dict(by_epoch=True, max_epochs=300, val_interval=5)
+train_cfg = dict(by_epoch=True, max_epochs=50, val_interval=2)
 auto_scale_lr = dict(base_batch_size=128)
 
 logger=dict(interval=10, type='LoggerHook')
@@ -133,3 +132,6 @@ custom_imports = dict(
     allow_failed_imports=False)
 
 del _base_.custom_hooks
+
+resume = False
+load_from = 'work_dirs_base/epoch_300.pth'
